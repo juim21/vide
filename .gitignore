@@ -1,0 +1,13 @@
+.claude/
+.omc/
+node_modules/
+dist/
+.next/
+.turbo/
+data/
+*.db
+*.db-wal
+*.db-shm
+.env
+.env.local
+.DS_Store
