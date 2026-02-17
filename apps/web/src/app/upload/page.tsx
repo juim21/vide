@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Upload, X, Film } from 'lucide-react';
-import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 
 export default function UploadPage() {
@@ -15,12 +14,21 @@ export default function UploadPage() {
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, isLoading } = useAuthStore();
   const router = useRouter();
 
-  if (!isAuthenticated) {
-    router.push('/login');
-    return null;
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading || !isAuthenticated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white" />
+      </div>
+    );
   }
 
   const handleFile = useCallback((f: File) => {

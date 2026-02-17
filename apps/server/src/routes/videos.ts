@@ -7,7 +7,7 @@ import { mkdirSync, unlinkSync, existsSync } from 'fs';
 import { pipeline } from 'stream/promises';
 import { createWriteStream } from 'fs';
 import { nanoid } from 'nanoid';
-import { VIDEO_MAX_SIZE_MB, TITLE_MAX_LENGTH } from '@vide/shared';
+import { VIDEO_MAX_SIZE_MB, VIDEO_MAX_DURATION_SECONDS, TITLE_MAX_LENGTH } from '@vide/shared';
 
 const uploadsDir = resolve(process.cwd(), 'data/uploads/videos');
 const thumbnailsDir = resolve(process.cwd(), 'data/uploads/thumbnails');
@@ -81,6 +81,15 @@ export async function videoRoutes(app: FastifyInstance) {
           else resolve(metadata?.format?.duration || 0);
         });
       });
+
+      // Check duration limit
+      if (duration > VIDEO_MAX_DURATION_SECONDS) {
+        unlinkSync(filePath);
+        return reply.status(400).send({
+          success: false,
+          error: `Video too long. Max ${VIDEO_MAX_DURATION_SECONDS} seconds (got ${Math.round(duration)}s)`,
+        });
+      }
 
       // Generate thumbnail
       thumbnailFilename = `${fileId}.jpg`;
