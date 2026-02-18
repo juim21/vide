@@ -99,6 +99,27 @@ export async function userRoutes(app: FastifyInstance) {
     return { success: true };
   });
 
+  // Edit profile
+  app.patch('/api/users/me', { preHandler: requireAuth }, async (request, reply) => {
+    const { displayName, bio } = request.body as { displayName?: string; bio?: string };
+    const updates: Record<string, any> = {};
+
+    if (displayName !== undefined) updates.displayName = displayName.slice(0, 30) || null;
+    if (bio !== undefined) updates.bio = bio.slice(0, 150) || null;
+
+    if (Object.keys(updates).length === 0) {
+      return reply.status(400).send({ success: false, error: 'No fields to update' });
+    }
+
+    db.update(schema.users).set(updates).where(eq(schema.users.id, request.user!.userId)).run();
+    const user = db.select().from(schema.users).where(eq(schema.users.id, request.user!.userId)).get();
+
+    return {
+      success: true,
+      data: user ? { id: user.id, username: user.username, email: user.email, displayName: user.displayName, avatarUrl: user.avatarUrl, bio: user.bio, createdAt: user.createdAt } : null,
+    };
+  });
+
   // Unfollow user
   app.delete('/api/users/:username/follow', { preHandler: requireAuth }, async (request) => {
     const { username } = request.params as { username: string };

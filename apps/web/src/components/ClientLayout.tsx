@@ -3,6 +3,8 @@
 import { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import BottomNav from './BottomNav';
+import ErrorBoundary from './ErrorBoundary';
+import ToastContainer from './Toast';
 import { useAuthStore } from '@/stores/auth';
 
 const NO_NAV_PAGES = ['/login', '/signup'];
@@ -18,9 +20,12 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="min-h-screen bg-black">
-      <main className={showNav ? 'pb-14' : ''}>
-        {children}
-      </main>
+      <ToastContainer />
+      <ErrorBoundary>
+        <main className={showNav ? 'pb-14' : ''}>
+          {children}
+        </main>
+      </ErrorBoundary>
       {showNav && <BottomNav />}
     </div>
   );

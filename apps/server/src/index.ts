@@ -3,6 +3,7 @@ import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
 import multipart from '@fastify/multipart';
 import staticPlugin from '@fastify/static';
+import rateLimit from '@fastify/rate-limit';
 import { resolve } from 'path';
 import { mkdirSync } from 'fs';
 import { authRoutes } from './routes/auth.js';
@@ -23,12 +24,16 @@ mkdirSync(resolve(dataDir, 'thumbnails'), { recursive: true });
 
 // Plugins
 await app.register(cors, {
-  origin: 'http://localhost:3000',
+  origin: process.env.CORS_ORIGIN || 'http://localhost:3000',
   credentials: true,
 });
 await app.register(cookie);
 await app.register(multipart, {
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
+});
+await app.register(rateLimit, {
+  max: 100,
+  timeWindow: '1 minute',
 });
 
 // Static file serving for uploaded media

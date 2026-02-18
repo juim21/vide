@@ -6,6 +6,7 @@ import type { VideoWithUser } from '@vide/shared';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
 import { useFeedStore } from '@/stores/feed';
+import { toast } from './Toast';
 import Link from 'next/link';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -20,6 +21,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
+  const [progress, setProgress] = useState(0);
   const { isAuthenticated } = useAuthStore();
   const { toggleLike } = useFeedStore();
 
@@ -29,7 +31,6 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
 
     if (isActive) {
       el.play().then(() => setIsPlaying(true)).catch(() => {});
-      // Record view
       if (isAuthenticated) {
         api(`/api/videos/${video.id}/view`, {
           method: 'POST',
@@ -40,8 +41,23 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
       el.pause();
       el.currentTime = 0;
       setIsPlaying(false);
+      setProgress(0);
     }
   }, [isActive, video.id, isAuthenticated]);
+
+  // Progress tracking
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+
+    const handleTimeUpdate = () => {
+      if (el.duration) {
+        setProgress((el.currentTime / el.duration) * 100);
+      }
+    };
+    el.addEventListener('timeupdate', handleTimeUpdate);
+    return () => el.removeEventListener('timeupdate', handleTimeUpdate);
+  }, []);
 
   const togglePlay = useCallback(() => {
     const el = videoRef.current;
@@ -58,8 +74,31 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
   }, []);
 
   const handleLike = () => {
-    if (!isAuthenticated) return;
+    if (!isAuthenticated) {
+      toast('로그인이 필요합니다', 'error');
+      return;
+    }
     toggleLike(video.id);
+  };
+
+  const handleShare = async () => {
+    const url = `${window.location.origin}/?v=${video.id}`;
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: video.title, url });
+      } catch { /* cancelled */ }
+    } else {
+      await navigator.clipboard.writeText(url);
+      toast('링크가 복사되었습니다', 'success');
+    }
+  };
+
+  const handleProgressClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    const el = videoRef.current;
+    if (!el || !el.duration) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    const ratio = (e.clientX - rect.left) / rect.width;
+    el.currentTime = ratio * el.duration;
   };
 
   return (
@@ -73,6 +112,17 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         preload="auto"
         onClick={togglePlay}
       />
+
+      {/* Progress bar */}
+      <div
+        className="absolute bottom-[72px] left-0 right-0 h-1 bg-white/20 cursor-pointer group z-10"
+        onClick={handleProgressClick}
+      >
+        <div
+          className="h-full bg-white/80 group-hover:bg-pink-500 transition-colors"
+          style={{ width: `${progress}%` }}
+        />
+      </div>
 
       {/* Play/Pause overlay */}
       {showPlayIcon && (
@@ -111,7 +161,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         <button onClick={handleLike} className="flex flex-col items-center gap-1">
           <Heart
             size={28}
-            className={video.isLiked ? 'text-red-500 fill-red-500' : 'text-white'}
+            className={`transition-transform active:scale-125 ${video.isLiked ? 'text-red-500 fill-red-500' : 'text-white'}`}
           />
           <span className="text-white text-xs">{video.likeCount}</span>
         </button>
@@ -123,7 +173,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         </button>
 
         {/* Share */}
-        <button className="flex flex-col items-center gap-1">
+        <button onClick={handleShare} className="flex flex-col items-center gap-1">
           <Share2 size={28} className="text-white" />
           <span className="text-white text-xs">공유</span>
         </button>

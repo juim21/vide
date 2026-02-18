@@ -2,10 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { Play, Heart, Grid3X3, LogOut } from 'lucide-react';
+import { Play, Heart, Grid3X3, LogOut, Pencil, Trash2 } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
-import type { UserProfile, Video } from '@vide/shared';
+import { toast } from '@/components/Toast';
+import EditProfileModal from '@/components/EditProfileModal';
+import { ProfileSkeleton, VideoGridSkeleton } from '@/components/Skeleton';
+import type { UserProfile, Video, User } from '@vide/shared';
 import Link from 'next/link';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
@@ -18,6 +21,7 @@ export default function ProfilePage() {
   const [likedVideos, setLikedVideos] = useState<Video[]>([]);
   const [activeTab, setActiveTab] = useState<'videos' | 'likes'>('videos');
   const [loading, setLoading] = useState(true);
+  const [showEditModal, setShowEditModal] = useState(false);
 
   const isOwnProfile = currentUser?.username === username;
 
@@ -60,10 +64,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteVideo = async (videoId: number) => {
+    if (!confirm('이 영상을 삭제하시겠습니까?')) return;
+    try {
+      await api(`/api/videos/${videoId}`, { method: 'DELETE' });
+      setVideos(prev => prev.filter(v => v.id !== videoId));
+      setProfile(prev => prev ? { ...prev, videoCount: prev.videoCount - 1 } : null);
+      toast('영상이 삭제되었습니다', 'success');
+    } catch {
+      toast('영상 삭제에 실패했습니다', 'error');
+    }
+  };
+
+  const handleProfileSave = (updatedUser: User) => {
+    setProfile(prev => prev ? { ...prev, ...updatedUser } : null);
+  };
+
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-white" />
+      <div className="min-h-screen">
+        <ProfileSkeleton />
+        <VideoGridSkeleton count={6} />
       </div>
     );
   }
@@ -118,13 +139,21 @@ export default function ProfilePage() {
 
         {/* Actions */}
         {isOwnProfile ? (
-          <button
-            onClick={logout}
-            className="w-full border border-gray-700 rounded-lg py-2 text-sm font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
-          >
-            <LogOut size={16} />
-            로그아웃
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 border border-gray-700 rounded-lg py-2 text-sm font-semibold hover:bg-gray-900 transition-colors flex items-center justify-center gap-2"
+            >
+              <Pencil size={16} />
+              프로필 편집
+            </button>
+            <button
+              onClick={logout}
+              className="border border-gray-700 rounded-lg py-2 px-4 text-sm font-semibold hover:bg-gray-900 transition-colors"
+            >
+              <LogOut size={16} />
+            </button>
+          </div>
         ) : isAuthenticated ? (
           <button
             onClick={handleFollow}
@@ -176,25 +205,41 @@ export default function ProfilePage() {
       ) : (
         <div className="grid grid-cols-3 gap-0.5 px-0.5 mt-0.5">
           {displayVideos.map(video => (
-            <Link
-              key={video.id}
-              href={`/?v=${video.id}`}
-              className="relative aspect-[9/16] bg-gray-900"
-            >
-              {video.thumbnailPath ? (
-                <img src={`${API_BASE}${video.thumbnailPath}`} alt="" className="w-full h-full object-cover" />
-              ) : (
-                <div className="w-full h-full flex items-center justify-center bg-gray-800">
-                  <Play size={24} className="text-gray-600" />
-                </div>
-              )}
+            <div key={video.id} className="relative aspect-[9/16] bg-gray-900 group">
+              <Link href={`/?v=${video.id}`} className="block w-full h-full">
+                {video.thumbnailPath ? (
+                  <img src={`${API_BASE}${video.thumbnailPath}`} alt="" className="w-full h-full object-cover" />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-gray-800">
+                    <Play size={24} className="text-gray-600" />
+                  </div>
+                )}
+              </Link>
               <div className="absolute bottom-1 left-1 flex items-center gap-0.5">
                 <Play size={10} fill="white" className="text-white" />
                 <span className="text-white text-[10px]">{video.viewCount}</span>
               </div>
-            </Link>
+              {/* Delete button for own videos */}
+              {isOwnProfile && activeTab === 'videos' && (
+                <button
+                  onClick={() => handleDeleteVideo(video.id)}
+                  className="absolute top-1 right-1 bg-black/60 rounded-full p-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  <Trash2 size={14} className="text-red-400" />
+                </button>
+              )}
+            </div>
           ))}
         </div>
+      )}
+
+      {/* Edit Profile Modal */}
+      {showEditModal && profile && (
+        <EditProfileModal
+          user={profile}
+          onClose={() => setShowEditModal(false)}
+          onSave={handleProfileSave}
+        />
       )}
     </div>
   );
