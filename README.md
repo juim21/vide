@@ -121,14 +121,17 @@ npm run db:seed -w @vide/server
 - 프로필 편집 (이름, 소개)
 - 본인 영상 삭제
 
-### 탐색
+### 탐색 + 검색
 - 트렌딩 영상 그리드
+- 실시간 검색 (사용자 / 영상, 300ms 디바운스)
+- 검색 결과 사용자 목록 + 영상 그리드 분리 표시
 
 ### UX
 - 로딩 스켈레톤 (프로필, 영상 그리드)
 - 글로벌 에러 바운더리 (다시 시도 버튼)
 - 토스트 알림 (성공 / 에러 / 정보)
 - 비로그인 시 안내 토스트
+- 반응형 데스크톱 레이아웃 (모바일 뷰포트 중앙 정렬)
 
 ### 보안
 - Rate limiting (분당 100요청)
@@ -163,6 +166,7 @@ npm run db:seed -w @vide/server
 | GET | `/api/feed` | Optional | 추천 피드 |
 | GET | `/api/feed/following` | Bearer | 팔로잉 피드 |
 | GET | `/api/feed/trending` | Optional | 트렌딩 피드 |
+| GET | `/api/search?q=` | Optional | 사용자/영상 검색 |
 
 ## DB 스키마
 
