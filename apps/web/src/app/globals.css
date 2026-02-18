@@ -70,3 +70,21 @@ body {
   -ms-overflow-style: none;
   scrollbar-width: none;
 }
+
+/* Desktop responsive - constrain to mobile viewport */
+@media (min-width: 640px) {
+  body {
+    display: flex;
+    justify-content: center;
+    background: #000;
+  }
+
+  body > div {
+    width: 100%;
+    max-width: 480px;
+    min-height: 100vh;
+    border-left: 1px solid #1f2937;
+    border-right: 1px solid #1f2937;
+    position: relative;
+  }
+}

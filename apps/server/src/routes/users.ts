@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { eq, and, desc, sql, count } from 'drizzle-orm';
+import { eq, and, desc, sql, count, like } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
@@ -129,5 +129,34 @@ export async function userRoutes(app: FastifyInstance) {
     db.delete(schema.follows)
       .where(and(eq(schema.follows.followerId, request.user!.userId), eq(schema.follows.followingId, targetUser.id))).run();
     return { success: true };
+  });
+
+  // Search users and videos
+  app.get('/api/search', { preHandler: optionalAuth }, async (request) => {
+    const { q } = request.query as { q?: string };
+    const query = (q || '').trim();
+    const pattern = `%${query}%`;
+
+    const users = query
+      ? db.select({
+          id: schema.users.id,
+          username: schema.users.username,
+          displayName: schema.users.displayName,
+          avatarUrl: schema.users.avatarUrl,
+        })
+        .from(schema.users)
+        .where(sql`${schema.users.username} LIKE ${pattern} OR ${schema.users.displayName} LIKE ${pattern}`)
+        .all()
+      : [];
+
+    const videos = query
+      ? db.select()
+        .from(schema.videos)
+        .where(sql`(${schema.videos.title} LIKE ${pattern} OR ${schema.videos.description} LIKE ${pattern}) AND ${schema.videos.status} = 'active'`)
+        .orderBy(desc(schema.videos.createdAt))
+        .all()
+      : [];
+
+    return { success: true, data: { users, videos } };
   });
 }
