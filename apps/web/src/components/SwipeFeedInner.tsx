@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useState, useCallback } from 'react';
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Virtual, Mousewheel } from 'swiper/modules';
 import type { Swiper as SwiperType } from 'swiper';
@@ -14,10 +14,6 @@ export default function SwipeFeedInner() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [commentVideoId, setCommentVideoId] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchVideos(true);
-  }, [fetchVideos]);
-
   const handleSlideChange = useCallback((swiper: SwiperType) => {
     setActiveIndex(swiper.activeIndex);
     if (swiper.activeIndex >= videos.length - 3 && hasMore && !isLoading) {
@@ -25,16 +21,7 @@ export default function SwipeFeedInner() {
     }
   }, [videos.length, hasMore, isLoading, fetchVideos]);
 
-  if (isLoading && videos.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center h-full gap-3">
-        <div className="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-        <p className="text-gray-400 text-sm">불러오는 중...</p>
-      </div>
-    );
-  }
-
-  if (videos.length === 0 && !isLoading) {
+  if (videos.length === 0) {
     const emptyMessages: Record<string, { title: string; desc: string }> = {
       following: { title: '팔로잉 영상이 없습니다', desc: '다른 사용자를 팔로우하면 여기에 영상이 표시됩니다.' },
       foryou: { title: '추천 영상이 없습니다', desc: '첫 번째 영상을 업로드해보세요!' },

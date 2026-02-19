@@ -179,6 +179,16 @@ npm run db:seed -w @vide/server
 - **follows** - 팔로우 관계 (follower_id + following_id 복합 PK)
 - **video_views** - 시청 기록 (user_id + video_id 복합 PK, watched_seconds)
 
+## 업데이트 이력
+
+| 날짜 | 내용 |
+|------|------|
+| 2025-02-20 | 초기 MVP 구현 (인증, 영상 업로드, 스와이프 피드, 소셜 기능, 프로필, 탐색) |
+| 2025-02-20 | UX 개선 (스켈레톤, 에러 바운더리, 토스트, 프로필 편집, 영상 삭제, rate limiting) |
+| 2025-02-20 | 검색 기능 추가 (사용자/영상 검색), 반응형 데스크톱 레이아웃 |
+| 2025-02-20 | username 중복 허용 (email만 유니크 체크) |
+| 2025-02-20 | 피드 안정성 개선: 빈 피드 상태 메시지, 반복 API 호출 수정, 비로그인 팔로잉 피드 지원, 개발환경 rate limit 비활성화 |
+
 ## 라이선스
 
 MIT

@@ -31,10 +31,12 @@ await app.register(cookie);
 await app.register(multipart, {
   limits: { fileSize: 100 * 1024 * 1024 }, // 100MB
 });
-await app.register(rateLimit, {
-  max: 100,
-  timeWindow: '1 minute',
-});
+if (process.env.NODE_ENV === 'production') {
+  await app.register(rateLimit, {
+    max: 100,
+    timeWindow: '1 minute',
+  });
+}
 
 // Static file serving for uploaded media
 await app.register(staticPlugin, {

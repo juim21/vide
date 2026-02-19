@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useRef } from 'react';
 import SwipeFeed from '@/components/SwipeFeed';
 import { useFeedStore } from '@/stores/feed';
 import type { FeedType } from '@vide/shared';
@@ -10,7 +11,15 @@ const tabs: { key: FeedType; label: string }[] = [
 ];
 
 export default function HomePage() {
-  const { feedType, setFeedType } = useFeedStore();
+  const { feedType, setFeedType, fetchVideos } = useFeedStore();
+  const initialFetched = useRef(false);
+
+  useEffect(() => {
+    if (!initialFetched.current) {
+      initialFetched.current = true;
+      fetchVideos(true);
+    }
+  }, []);
 
   return (
     <div className="h-screen w-full relative">

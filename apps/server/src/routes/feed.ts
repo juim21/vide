@@ -67,10 +67,13 @@ export async function feedRoutes(app: FastifyInstance) {
   });
 
   // Following feed
-  app.get('/api/feed/following', { preHandler: requireAuth }, async (request) => {
+  app.get('/api/feed/following', { preHandler: optionalAuth }, async (request) => {
     const { cursor, limit: limitStr } = request.query as { cursor?: string; limit?: string };
     const limit = Math.min(Number(limitStr) || 10, 20);
-    const userId = request.user!.userId;
+    const userId = request.user?.userId;
+    if (!userId) {
+      return { success: true, data: [], hasMore: false };
+    }
 
     const followingIds = db.select({ followingId: schema.follows.followingId })
       .from(schema.follows)
@@ -100,8 +103,8 @@ export async function feedRoutes(app: FastifyInstance) {
     const items = rows.slice(0, limit);
 
     const videos = items.map((row: any) => {
-      const like = db.select().from(schema.likes)
-        .where(and(eq(schema.likes.userId, userId), eq(schema.likes.videoId, row.videos.id))).get();
+      const like = userId ? db.select().from(schema.likes)
+        .where(and(eq(schema.likes.userId, userId), eq(schema.likes.videoId, row.videos.id))).get() : null;
       return buildVideoWithUser(row.videos, row.users, !!like);
     });
 

@@ -50,9 +50,10 @@ export const useFeedStore = create<FeedState>((set, get) => ({
         videos: reset ? res.data : [...state.videos, ...res.data],
         cursor: res.cursor,
         hasMore: res.hasMore,
-        isLoading: false,
       }));
     } catch {
+      set({ hasMore: false });
+    } finally {
       set({ isLoading: false });
     }
   },
