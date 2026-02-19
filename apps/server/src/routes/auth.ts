@@ -22,13 +22,11 @@ export async function authRoutes(app: FastifyInstance) {
       return reply.status(400).send({ success: false, error: `Password must be at least ${PASSWORD_MIN_LENGTH} characters` });
     }
 
-    const existing = db.select().from(schema.users)
-      .where(eq(schema.users.username, username)).get()
-      || db.select().from(schema.users)
+    const existingEmail = db.select().from(schema.users)
       .where(eq(schema.users.email, email)).get();
 
-    if (existing) {
-      return reply.status(409).send({ success: false, error: 'Username or email already exists' });
+    if (existingEmail) {
+      return reply.status(409).send({ success: false, error: 'Email already exists' });
     }
 
     const passwordHash = await hashPassword(password);
