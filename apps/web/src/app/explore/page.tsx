@@ -95,7 +95,7 @@ export default function ExplorePage() {
               {trendingVideos.map(video => (
                 <Link
                   key={video.id}
-                  href={`/?v=${video.id}`}
+                  href={`/video/${video.id}`}
                   className="relative aspect-[9/16] bg-gray-900 rounded overflow-hidden group"
                 >
                   {video.thumbnailPath ? (
@@ -170,7 +170,7 @@ export default function ExplorePage() {
                     {searchResults.videos.map(video => (
                       <Link
                         key={video.id}
-                        href={`/?v=${video.id}`}
+                        href={`/video/${video.id}`}
                         className="relative aspect-[9/16] bg-gray-900 rounded overflow-hidden group"
                       >
                         {video.thumbnailPath ? (

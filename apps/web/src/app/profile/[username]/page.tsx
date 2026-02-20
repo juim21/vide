@@ -206,7 +206,7 @@ export default function ProfilePage() {
         <div className="grid grid-cols-3 gap-0.5 px-0.5 mt-0.5">
           {displayVideos.map(video => (
             <div key={video.id} className="relative aspect-[9/16] bg-gray-900 group">
-              <Link href={`/?v=${video.id}`} className="block w-full h-full">
+              <Link href={`/video/${video.id}`} className="block w-full h-full">
                 {video.thumbnailPath ? (
                   <img src={`${API_BASE}${video.thumbnailPath}`} alt="" className="w-full h-full object-cover" />
                 ) : (
