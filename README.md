@@ -154,6 +154,11 @@ npm run db:seed -w @vide/server
 | GET | `/api/users/:username/likes` | Optional | 유저 좋아요 목록 |
 | POST | `/api/users/:username/follow` | Bearer | 팔로우 |
 | DELETE | `/api/users/:username/follow` | Bearer | 언팔로우 |
+| GET | `/api/users/by-id/:id` | Optional | 유저 프로필 (ID 기반) |
+| GET | `/api/users/by-id/:id/videos` | Optional | 유저 영상 목록 (ID 기반) |
+| GET | `/api/users/by-id/:id/likes` | Optional | 유저 좋아요 목록 (ID 기반) |
+| POST | `/api/users/by-id/:id/follow` | Bearer | 팔로우 (ID 기반) |
+| DELETE | `/api/users/by-id/:id/follow` | Bearer | 언팔로우 (ID 기반) |
 | POST | `/api/videos` | Bearer | 영상 업로드 (multipart) |
 | GET | `/api/videos/:id` | Optional | 영상 조회 |
 | DELETE | `/api/videos/:id` | Bearer | 영상 삭제 |
@@ -190,7 +195,4 @@ npm run db:seed -w @vide/server
 | 2025-02-20 | 피드 안정성 개선: 빈 피드 상태 메시지, 반복 API 호출 수정, 비로그인 팔로잉 피드 지원, 개발환경 rate limit 비활성화 |
 | 2025-02-20 | 개별 영상 재생 페이지 추가 (`/video/:id`), 탐색/프로필에서 영상 클릭 시 바로 재생 |
 | 2025-02-23 | 팔로우 API 수정 (빈 body 에러 해결), 한글 username URL 인코딩 처리, 프로필 로그아웃 버튼 수정 |
-
-## 라이선스
-
-MIT
+| 2025-02-23 | 프로필 ID 기반 전환 (`/profile/[username]` → `/profile/[id]`), 더블탭 좋아요 + 하트 애니메이션 추가, ID 기반 유저 API 추가 |
