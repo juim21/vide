@@ -22,6 +22,8 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [heartPos, setHeartPos] = useState<{ x: number; y: number } | null>(null);
+  const lastTapRef = useRef(0);
   const { isAuthenticated } = useAuthStore();
   const { toggleLike } = useFeedStore();
 
@@ -73,6 +75,27 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
     setTimeout(() => setShowPlayIcon(false), 600);
   }, []);
 
+  const handleVideoClick = useCallback((e: React.MouseEvent<HTMLVideoElement>) => {
+    const now = Date.now();
+    if (now - lastTapRef.current < 300) {
+      // Double tap → like
+      lastTapRef.current = 0;
+      const rect = e.currentTarget.getBoundingClientRect();
+      setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+      setTimeout(() => setHeartPos(null), 800);
+      if (isAuthenticated && !video.isLiked) {
+        toggleLike(video.id);
+      }
+    } else {
+      lastTapRef.current = now;
+      setTimeout(() => {
+        if (lastTapRef.current === now) {
+          togglePlay();
+        }
+      }, 300);
+    }
+  }, [isAuthenticated, video.isLiked, video.id, toggleLike, togglePlay]);
+
   const handleLike = () => {
     if (!isAuthenticated) {
       toast('로그인이 필요합니다', 'error');
@@ -110,8 +133,18 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         loop
         playsInline
         preload="auto"
-        onClick={togglePlay}
+        onClick={handleVideoClick}
       />
+
+      {/* Heart animation on double tap */}
+      {heartPos && (
+        <div
+          className="absolute pointer-events-none animate-heart-pop z-20"
+          style={{ left: heartPos.x, top: heartPos.y }}
+        >
+          <Heart size={80} className="text-red-500 fill-red-500 drop-shadow-lg" />
+        </div>
+      )}
 
       {/* Progress bar */}
       <div
@@ -135,7 +168,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
 
       {/* Video info overlay */}
       <div className="absolute bottom-0 left-0 right-16 p-4 pb-20 bg-gradient-to-t from-black/60 to-transparent">
-        <Link href={`/profile/${video.user?.username}`} className="font-bold text-white text-sm hover:underline">
+        <Link href={`/profile/${video.user?.id}`} className="font-bold text-white text-sm hover:underline">
           @{video.user?.displayName || video.user?.username}
         </Link>
         <p className="text-white text-sm mt-1 line-clamp-2">{video.title}</p>
@@ -147,7 +180,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
       {/* Action buttons */}
       <div className="absolute right-3 bottom-24 flex flex-col items-center gap-5">
         {/* Avatar */}
-        <Link href={`/profile/${video.user?.username}`} className="w-10 h-10 rounded-full bg-gray-700 border-2 border-white overflow-hidden">
+        <Link href={`/profile/${video.user?.id}`} className="w-10 h-10 rounded-full bg-gray-700 border-2 border-white overflow-hidden">
           {video.user?.avatarUrl ? (
             <img src={`${API_BASE}${video.user.avatarUrl}`} alt="" className="w-full h-full object-cover" />
           ) : (

@@ -14,8 +14,8 @@ import Link from 'next/link';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function ProfilePage() {
-  const params = useParams<{ username: string }>();
-  const username = decodeURIComponent(params.username);
+  const params = useParams<{ id: string }>();
+  const profileId = params.id;
   const { user: currentUser, isAuthenticated, logout } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -24,15 +24,14 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const isOwnProfile = isAuthenticated && currentUser?.username === username;
+  const isOwnProfile = isAuthenticated && currentUser?.id?.toString() === profileId;
 
   useEffect(() => {
     setLoading(true);
-    const encoded = encodeURIComponent(username);
     Promise.all([
-      api<{ success: boolean; data: UserProfile }>(`/api/users/${encoded}`),
-      api<{ success: boolean; data: Video[] }>(`/api/users/${encoded}/videos`),
-      api<{ success: boolean; data: Video[] }>(`/api/users/${encoded}/likes`),
+      api<{ success: boolean; data: UserProfile }>(`/api/users/by-id/${profileId}`),
+      api<{ success: boolean; data: Video[] }>(`/api/users/by-id/${profileId}/videos`),
+      api<{ success: boolean; data: Video[] }>(`/api/users/by-id/${profileId}/likes`),
     ])
       .then(([profileRes, videosRes, likesRes]) => {
         setProfile(profileRes.data);
@@ -41,7 +40,7 @@ export default function ProfilePage() {
       })
       .catch(() => {})
       .finally(() => setLoading(false));
-  }, [username]);
+  }, [profileId]);
 
   const handleFollow = async () => {
     if (!isAuthenticated || !profile) return;
@@ -54,7 +53,7 @@ export default function ProfilePage() {
     } : null);
 
     try {
-      await api(`/api/users/${encodeURIComponent(username)}/follow`, {
+      await api(`/api/users/by-id/${profileId}/follow`, {
         method: wasFollowing ? 'DELETE' : 'POST',
       });
     } catch (err: any) {

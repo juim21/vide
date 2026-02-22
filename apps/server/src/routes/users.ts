@@ -131,6 +131,116 @@ export async function userRoutes(app: FastifyInstance) {
     return { success: true };
   });
 
+  // Get user profile by ID
+  app.get('/api/users/by-id/:id', { preHandler: optionalAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+
+    const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+    if (!user) return reply.status(404).send({ success: false, error: 'User not found' });
+
+    const [followerCount] = db.select({ count: count() }).from(schema.follows)
+      .where(eq(schema.follows.followingId, user.id)).all();
+    const [followingCount] = db.select({ count: count() }).from(schema.follows)
+      .where(eq(schema.follows.followerId, user.id)).all();
+    const [videoCount] = db.select({ count: count() }).from(schema.videos)
+      .where(and(eq(schema.videos.userId, user.id), eq(schema.videos.status, 'active'))).all();
+
+    let isFollowing = false;
+    if (request.user) {
+      const follow = db.select().from(schema.follows)
+        .where(and(eq(schema.follows.followerId, request.user.userId), eq(schema.follows.followingId, user.id))).get();
+      isFollowing = !!follow;
+    }
+
+    return {
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        displayName: user.displayName,
+        avatarUrl: user.avatarUrl,
+        bio: user.bio,
+        createdAt: user.createdAt,
+        followerCount: followerCount.count,
+        followingCount: followingCount.count,
+        videoCount: videoCount.count,
+        isFollowing,
+      },
+    };
+  });
+
+  // Get user's videos by ID
+  app.get('/api/users/by-id/:id/videos', { preHandler: optionalAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+
+    const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+    if (!user) return { success: true, data: [] };
+
+    const videos = db.select().from(schema.videos)
+      .where(and(eq(schema.videos.userId, user.id), eq(schema.videos.status, 'active')))
+      .orderBy(desc(schema.videos.createdAt))
+      .all();
+
+    return { success: true, data: videos };
+  });
+
+  // Get user's liked videos by ID
+  app.get('/api/users/by-id/:id/likes', { preHandler: optionalAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const userId = parseInt(id, 10);
+    if (isNaN(userId)) return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+
+    const user = db.select().from(schema.users).where(eq(schema.users.id, userId)).get();
+    if (!user) return { success: true, data: [] };
+
+    const rows = db.select()
+      .from(schema.likes)
+      .innerJoin(schema.videos, eq(schema.likes.videoId, schema.videos.id))
+      .where(and(eq(schema.likes.userId, user.id), eq(schema.videos.status, 'active')))
+      .orderBy(desc(schema.likes.createdAt))
+      .all();
+
+    const videos = rows.map((r: any) => r.videos);
+    return { success: true, data: videos };
+  });
+
+  // Follow user by ID
+  app.post('/api/users/by-id/:id/follow', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const targetUserId = parseInt(id, 10);
+    if (isNaN(targetUserId)) return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+
+    const targetUser = db.select().from(schema.users).where(eq(schema.users.id, targetUserId)).get();
+    if (!targetUser) return reply.status(404).send({ success: false, error: 'User not found' });
+    if (targetUser.id === request.user!.userId) return reply.status(400).send({ success: false, error: 'Cannot follow yourself' });
+
+    const existing = db.select().from(schema.follows)
+      .where(and(eq(schema.follows.followerId, request.user!.userId), eq(schema.follows.followingId, targetUser.id))).get();
+    if (existing) return reply.status(409).send({ success: false, error: 'Already following' });
+
+    db.insert(schema.follows).values({ followerId: request.user!.userId, followingId: targetUser.id }).run();
+    return { success: true };
+  });
+
+  // Unfollow user by ID
+  app.delete('/api/users/by-id/:id/follow', { preHandler: requireAuth }, async (request, reply) => {
+    const { id } = request.params as { id: string };
+    const targetUserId = parseInt(id, 10);
+    if (isNaN(targetUserId)) return reply.status(400).send({ success: false, error: 'Invalid user ID' });
+
+    const targetUser = db.select().from(schema.users).where(eq(schema.users.id, targetUserId)).get();
+    if (!targetUser) return { success: true };
+
+    db.delete(schema.follows)
+      .where(and(eq(schema.follows.followerId, request.user!.userId), eq(schema.follows.followingId, targetUser.id))).run();
+    return { success: true };
+  });
+
   // Search users and videos
   app.get('/api/search', { preHandler: optionalAuth }, async (request) => {
     const { q } = request.query as { q?: string };

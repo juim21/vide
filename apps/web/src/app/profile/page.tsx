@@ -13,7 +13,7 @@ export default function ProfileRedirect() {
     if (!isAuthenticated || !user) {
       router.replace('/login');
     } else {
-      router.replace(`/profile/${user.username}`);
+      router.replace(`/profile/${user.id}`);
     }
   }, [isAuthenticated, isLoading, user, router]);
 

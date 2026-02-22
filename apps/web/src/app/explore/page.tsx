@@ -138,7 +138,7 @@ export default function ExplorePage() {
                     {searchResults.users.map(user => (
                       <Link
                         key={user.id}
-                        href={`/profile/${user.username}`}
+                        href={`/profile/${user.id}`}
                         className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-900 transition-colors"
                       >
                         {user.avatarPath ? (

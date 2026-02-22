@@ -57,6 +57,17 @@ body {
   animation: slide-down 0.3s ease-out;
 }
 
+@keyframes heart-pop {
+  0% { opacity: 1; transform: translate(-50%, -50%) scale(0); }
+  30% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+  50% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.4); }
+}
+
+.animate-heart-pop {
+  animation: heart-pop 0.8s ease-out forwards;
+}
+
 /* Safe area for mobile */
 .safe-area-bottom {
   padding-bottom: env(safe-area-inset-bottom);
