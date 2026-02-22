@@ -14,7 +14,8 @@ import Link from 'next/link';
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
 export default function ProfilePage() {
-  const { username } = useParams<{ username: string }>();
+  const params = useParams<{ username: string }>();
+  const username = decodeURIComponent(params.username);
   const { user: currentUser, isAuthenticated, logout } = useAuthStore();
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [videos, setVideos] = useState<Video[]>([]);
@@ -23,14 +24,15 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [showEditModal, setShowEditModal] = useState(false);
 
-  const isOwnProfile = currentUser?.username === username;
+  const isOwnProfile = isAuthenticated && currentUser?.username === username;
 
   useEffect(() => {
     setLoading(true);
+    const encoded = encodeURIComponent(username);
     Promise.all([
-      api<{ success: boolean; data: UserProfile }>(`/api/users/${username}`),
-      api<{ success: boolean; data: Video[] }>(`/api/users/${username}/videos`),
-      api<{ success: boolean; data: Video[] }>(`/api/users/${username}/likes`),
+      api<{ success: boolean; data: UserProfile }>(`/api/users/${encoded}`),
+      api<{ success: boolean; data: Video[] }>(`/api/users/${encoded}/videos`),
+      api<{ success: boolean; data: Video[] }>(`/api/users/${encoded}/likes`),
     ])
       .then(([profileRes, videosRes, likesRes]) => {
         setProfile(profileRes.data);
@@ -52,10 +54,11 @@ export default function ProfilePage() {
     } : null);
 
     try {
-      await api(`/api/users/${username}/follow`, {
+      await api(`/api/users/${encodeURIComponent(username)}/follow`, {
         method: wasFollowing ? 'DELETE' : 'POST',
       });
-    } catch {
+    } catch (err: any) {
+      toast(err.message || '팔로우에 실패했습니다', 'error');
       setProfile(prev => prev ? {
         ...prev,
         isFollowing: wasFollowing,

@@ -41,8 +41,8 @@ export async function api<T = any>(
     headers['Authorization'] = `Bearer ${accessToken}`;
   }
 
-  // Don't set Content-Type for FormData (browser sets it with boundary)
-  if (!(options.body instanceof FormData) && !headers['Content-Type']) {
+  // Don't set Content-Type for FormData or requests without body
+  if (options.body && !(options.body instanceof FormData) && !headers['Content-Type']) {
     headers['Content-Type'] = 'application/json';
   }
 
