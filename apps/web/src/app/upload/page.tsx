@@ -10,6 +10,7 @@ export default function UploadPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [hashtags, setHashtags] = useState('');
   const [uploading, setUploading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
@@ -63,6 +64,7 @@ export default function UploadPage() {
     formData.append('file', file);
     formData.append('title', title || 'Untitled');
     if (description) formData.append('description', description);
+    if (hashtags.trim()) formData.append('hashtags', hashtags.trim());
 
     try {
       const { getAccessToken } = await import('@/lib/api');
@@ -163,6 +165,24 @@ export default function UploadPage() {
           rows={3}
           className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-gray-600 resize-none"
         />
+        <div>
+          <input
+            type="text"
+            placeholder="해시태그 (쉼표 또는 스페이스로 구분)"
+            value={hashtags}
+            onChange={e => setHashtags(e.target.value)}
+            className="w-full bg-gray-900 border border-gray-800 rounded-lg px-4 py-3 text-white placeholder-gray-500 outline-none focus:border-gray-600"
+          />
+          {hashtags.trim() && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {hashtags.split(/[,\s]+/).filter(t => t.trim()).map((tag, i) => (
+                <span key={i} className="bg-pink-600/20 text-pink-400 text-xs px-2 py-1 rounded-full">
+                  #{tag.replace(/^#/, '')}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
 
         {uploading && (
           <div className="w-full bg-gray-800 rounded-full h-2">

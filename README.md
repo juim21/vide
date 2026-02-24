@@ -111,9 +111,11 @@ npm run db:seed -w @vide/server
 
 ### 소셜
 - 좋아요 / 언좋아요 (Optimistic UI + 애니메이션)
-- 댓글 작성 / 삭제 (바텀시트 UI)
+- 더블탭 좋아요 (인스타그램 방식: 이미 좋아요한 영상도 하트 표시, 해제 안 함)
+- 댓글 작성 / 삭제 (바텀시트 UI, 비로그인 시 안내)
 - 팔로우 / 언팔로우 (Optimistic UI)
 - 공유 (Web Share API / 클립보드 복사)
+- 해시태그 (업로드 시 태그 추가, 영상에 칩 표시, 클릭 시 탐색)
 
 ### 프로필
 - 유저 프로필 (팔로워, 팔로잉, 영상 수)
@@ -124,7 +126,9 @@ npm run db:seed -w @vide/server
 ### 탐색 + 검색
 - 트렌딩 영상 그리드
 - 실시간 검색 (사용자 / 영상, 300ms 디바운스)
-- 검색 결과 사용자 목록 + 영상 그리드 분리 표시
+- 해시태그 검색 (`#태그명`으로 검색, 일반 검색에도 해시태그 매칭)
+- 해시태그별 영상 목록 (`/api/hashtags/:name/videos`)
+- 검색 결과 사용자 목록 + 해시태그 + 영상 그리드 분리 표시
 
 ### UX
 - 로딩 스켈레톤 (프로필, 영상 그리드)
@@ -171,11 +175,12 @@ npm run db:seed -w @vide/server
 | GET | `/api/feed` | Optional | 추천 피드 |
 | GET | `/api/feed/following` | Bearer | 팔로잉 피드 |
 | GET | `/api/feed/trending` | Optional | 트렌딩 피드 |
-| GET | `/api/search?q=` | Optional | 사용자/영상 검색 |
+| GET | `/api/search?q=` | Optional | 사용자/영상/해시태그 검색 |
+| GET | `/api/hashtags/:name/videos` | Optional | 해시태그별 영상 목록 |
 
 ## DB 스키마
 
-6개 테이블:
+8개 테이블:
 
 - **users** - 사용자 정보 (username, email, password_hash, display_name, avatar_url, bio)
 - **videos** - 영상 메타데이터 (title, file_path, thumbnail_path, duration, 카운터들, status)
@@ -183,6 +188,8 @@ npm run db:seed -w @vide/server
 - **comments** - 댓글 (content, user_id FK, video_id FK)
 - **follows** - 팔로우 관계 (follower_id + following_id 복합 PK)
 - **video_views** - 시청 기록 (user_id + video_id 복합 PK, watched_seconds)
+- **hashtags** - 해시태그 (name UNIQUE)
+- **video_hashtags** - 영상-해시태그 연결 (video_id + hashtag_id 복합 PK)
 
 ## 업데이트 이력
 
@@ -195,4 +202,5 @@ npm run db:seed -w @vide/server
 | 2025-02-20 | 피드 안정성 개선: 빈 피드 상태 메시지, 반복 API 호출 수정, 비로그인 팔로잉 피드 지원, 개발환경 rate limit 비활성화 |
 | 2025-02-20 | 개별 영상 재생 페이지 추가 (`/video/:id`), 탐색/프로필에서 영상 클릭 시 바로 재생 |
 | 2025-02-23 | 팔로우 API 수정 (빈 body 에러 해결), 한글 username URL 인코딩 처리, 프로필 로그아웃 버튼 수정 |
+| 2025-02-24 | 해시태그 기능 (업로드/표시/검색/태그별 영상), 더블탭 UX 개선 (인스타그램 방식), 댓글 UX 개선 |
 | 2025-02-23 | 프로필 ID 기반 전환 (`/profile/[username]` → `/profile/[id]`), 더블탭 좋아요 + 하트 애니메이션 추가, ID 기반 유저 API 추가 |

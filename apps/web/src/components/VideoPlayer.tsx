@@ -8,6 +8,7 @@ import { useAuthStore } from '@/stores/auth';
 import { useFeedStore } from '@/stores/feed';
 import { toast } from './Toast';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -18,6 +19,7 @@ interface VideoPlayerProps {
 }
 
 export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPlayerProps) {
+  const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [showPlayIcon, setShowPlayIcon] = useState(false);
@@ -77,13 +79,15 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
 
   const handleVideoClick = useCallback((e: React.MouseEvent<HTMLVideoElement>) => {
     const now = Date.now();
-    if (now - lastTapRef.current < 300) {
-      // Double tap → like
+    if (now - lastTapRef.current < 200) {
+      // Double tap → like (Instagram style: always show heart, only like if not already liked)
       lastTapRef.current = 0;
       const rect = e.currentTarget.getBoundingClientRect();
       setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       setTimeout(() => setHeartPos(null), 800);
-      if (isAuthenticated && !video.isLiked) {
+      if (!isAuthenticated) {
+        toast('로그인하면 좋아요를 누를 수 있어요', 'error');
+      } else if (!video.isLiked) {
         toggleLike(video.id);
       }
     } else {
@@ -92,7 +96,7 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         if (lastTapRef.current === now) {
           togglePlay();
         }
-      }, 300);
+      }, 200);
     }
   }, [isAuthenticated, video.isLiked, video.id, toggleLike, togglePlay]);
 
@@ -174,6 +178,19 @@ export default function VideoPlayer({ video, isActive, onCommentClick }: VideoPl
         <p className="text-white text-sm mt-1 line-clamp-2">{video.title}</p>
         {video.description && (
           <p className="text-gray-300 text-xs mt-1 line-clamp-1">{video.description}</p>
+        )}
+        {video.hashtags && video.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {video.hashtags.map(tag => (
+              <button
+                key={tag}
+                onClick={() => router.push(`/explore?q=${encodeURIComponent('#' + tag)}`)}
+                className="text-cyan-400 text-xs font-medium hover:underline"
+              >
+                #{tag}
+              </button>
+            ))}
+          </div>
         )}
       </div>
 

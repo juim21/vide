@@ -14,6 +14,27 @@ const thumbnailsDir = resolve(process.cwd(), 'data/uploads/thumbnails');
 mkdirSync(uploadsDir, { recursive: true });
 mkdirSync(thumbnailsDir, { recursive: true });
 
+function getHashtagsForVideo(videoId: number): string[] {
+  const rows = db.select({ name: schema.hashtags.name })
+    .from(schema.videoHashtags)
+    .innerJoin(schema.hashtags, eq(schema.videoHashtags.hashtagId, schema.hashtags.id))
+    .where(eq(schema.videoHashtags.videoId, videoId))
+    .all();
+  return rows.map(r => r.name);
+}
+
+function saveHashtags(videoId: number, tags: string[]) {
+  for (const tag of tags) {
+    const name = tag.replace(/^#/, '').trim().toLowerCase();
+    if (!name) continue;
+    db.insert(schema.hashtags).values({ name }).onConflictDoNothing().run();
+    const hashtag = db.select().from(schema.hashtags).where(eq(schema.hashtags.name, name)).get();
+    if (hashtag) {
+      db.insert(schema.videoHashtags).values({ videoId, hashtagId: hashtag.id }).onConflictDoNothing().run();
+    }
+  }
+}
+
 function getVideoWithUser(videoId: number, userId?: number) {
   const video = db.select().from(schema.videos)
     .where(and(eq(schema.videos.id, videoId), eq(schema.videos.status, 'active')))
@@ -33,6 +54,7 @@ function getVideoWithUser(videoId: number, userId?: number) {
 
   return {
     ...video,
+    hashtags: getHashtagsForVideo(videoId),
     user: user ? { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl } : null,
     isLiked,
   };
@@ -67,6 +89,7 @@ export async function videoRoutes(app: FastifyInstance) {
 
     const title = (data.fields.title as any)?.value || 'Untitled';
     const description = (data.fields.description as any)?.value || null;
+    const hashtagsRaw = (data.fields.hashtags as any)?.value || '';
 
     // Try to generate thumbnail with ffmpeg
     let thumbnailFilename: string | null = null;
@@ -122,6 +145,12 @@ export async function videoRoutes(app: FastifyInstance) {
       status: 'active',
     }).returning().get();
 
+    // Save hashtags
+    if (hashtagsRaw) {
+      const tags = hashtagsRaw.split(/[,\s]+/).filter((t: string) => t.trim());
+      saveHashtags(video.id, tags);
+    }
+
     return { success: true, data: getVideoWithUser(video.id, request.user!.userId) };
   });
 
@@ -133,6 +162,26 @@ export async function videoRoutes(app: FastifyInstance) {
       return reply.status(404).send({ success: false, error: 'Video not found' });
     }
     return { success: true, data: video };
+  });
+
+  // Get videos by hashtag
+  app.get('/api/hashtags/:name/videos', { preHandler: optionalAuth }, async (request) => {
+    const { name } = request.params as { name: string };
+    const tagName = name.replace(/^#/, '').trim().toLowerCase();
+
+    const hashtag = db.select().from(schema.hashtags).where(eq(schema.hashtags.name, tagName)).get();
+    if (!hashtag) return { success: true, data: [] };
+
+    const rows = db.select({ videoId: schema.videoHashtags.videoId })
+      .from(schema.videoHashtags)
+      .where(eq(schema.videoHashtags.hashtagId, hashtag.id))
+      .all();
+
+    const videos = rows
+      .map(r => getVideoWithUser(r.videoId, request.user?.userId))
+      .filter(Boolean);
+
+    return { success: true, data: videos };
   });
 
   // Delete video

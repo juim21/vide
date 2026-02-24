@@ -59,3 +59,16 @@ export const videoViews = sqliteTable('video_views', {
 }, (table) => [
   primaryKey({ columns: [table.userId, table.videoId] }),
 ]);
+
+export const hashtags = sqliteTable('hashtags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  name: text('name').notNull().unique(),
+  createdAt: text('created_at').notNull().default(sql`(datetime('now'))`),
+});
+
+export const videoHashtags = sqliteTable('video_hashtags', {
+  videoId: integer('video_id').notNull().references(() => videos.id, { onDelete: 'cascade' }),
+  hashtagId: integer('hashtag_id').notNull().references(() => hashtags.id, { onDelete: 'cascade' }),
+}, (table) => [
+  primaryKey({ columns: [table.videoId, table.hashtagId] }),
+]);

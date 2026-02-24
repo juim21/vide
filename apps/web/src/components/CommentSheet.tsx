@@ -4,11 +4,12 @@ import { useState, useEffect, useRef } from 'react';
 import { X, Send } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useAuthStore } from '@/stores/auth';
+import { toast } from './Toast';
 import type { Comment } from '@vide/shared';
 
 interface CommentSheetProps {
   videoId: number;
-  onClose: () => void;
+  onClose: (commentCount?: number) => void;
 }
 
 export default function CommentSheet({ videoId, onClose }: CommentSheetProps) {
@@ -27,7 +28,11 @@ export default function CommentSheet({ videoId, onClose }: CommentSheetProps) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content.trim() || !isAuthenticated) return;
+    if (!content.trim()) return;
+    if (!isAuthenticated) {
+      toast('로그인이 필요합니다', 'error');
+      return;
+    }
 
     try {
       const res = await api<{ success: boolean; data: Comment }>(`/api/videos/${videoId}/comments`, {
@@ -47,16 +52,16 @@ export default function CommentSheet({ videoId, onClose }: CommentSheetProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" onClick={onClose}>
+    <div className="fixed inset-0 z-[60] flex flex-col justify-end" onClick={() => onClose(comments.length)}>
       <div className="bg-black/50 absolute inset-0" />
       <div
-        className="relative bg-gray-900 rounded-t-2xl max-h-[70vh] flex flex-col animate-slide-up"
+        className="relative bg-gray-900 rounded-t-2xl max-h-[70vh] flex flex-col animate-slide-up pb-14"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
         <div className="flex items-center justify-between px-4 py-3 border-b border-gray-800">
           <span className="text-white font-semibold">댓글 {comments.length}</span>
-          <button onClick={onClose}>
+          <button onClick={() => onClose(comments.length)}>
             <X size={20} className="text-gray-400" />
           </button>
         </div>
@@ -92,26 +97,24 @@ export default function CommentSheet({ videoId, onClose }: CommentSheetProps) {
         </div>
 
         {/* Input */}
-        {isAuthenticated && (
-          <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-gray-800">
-            <input
-              ref={inputRef}
-              type="text"
-              value={content}
-              onChange={e => setContent(e.target.value)}
-              placeholder="댓글 추가..."
-              maxLength={500}
-              className="flex-1 bg-gray-800 text-white rounded-full px-4 py-2 text-sm placeholder-gray-500 outline-none focus:ring-1 focus:ring-gray-600"
-            />
-            <button
-              type="submit"
-              disabled={!content.trim()}
-              className="text-pink-500 disabled:text-gray-600 p-2"
-            >
-              <Send size={20} />
-            </button>
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className="flex items-center gap-2 px-4 py-3 border-t border-gray-800">
+          <input
+            ref={inputRef}
+            type="text"
+            value={content}
+            onChange={e => setContent(e.target.value)}
+            placeholder={isAuthenticated ? "댓글 추가..." : "로그인 후 댓글을 남길 수 있습니다"}
+            maxLength={500}
+            className="flex-1 bg-gray-800 text-white rounded-full px-4 py-2 text-sm placeholder-gray-500 outline-none focus:ring-1 focus:ring-gray-600"
+          />
+          <button
+            type="submit"
+            disabled={!content.trim()}
+            className="text-pink-500 disabled:text-gray-600 p-2"
+          >
+            <Send size={20} />
+          </button>
+        </form>
       </div>
     </div>
   );

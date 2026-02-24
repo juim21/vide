@@ -3,9 +3,19 @@ import { eq, and, desc, sql, notInArray, inArray } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
+function getHashtagsForVideo(videoId: number): string[] {
+  const rows = db.select({ name: schema.hashtags.name })
+    .from(schema.videoHashtags)
+    .innerJoin(schema.hashtags, eq(schema.videoHashtags.hashtagId, schema.hashtags.id))
+    .where(eq(schema.videoHashtags.videoId, videoId))
+    .all();
+  return rows.map(r => r.name);
+}
+
 function buildVideoWithUser(video: any, user: any, isLiked: boolean) {
   return {
     ...video,
+    hashtags: getHashtagsForVideo(video.id),
     user: { id: user.id, username: user.username, displayName: user.displayName, avatarUrl: user.avatarUrl },
     isLiked,
   };

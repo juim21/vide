@@ -67,11 +67,25 @@ export function migrate() {
       PRIMARY KEY (user_id, video_id)
     );
 
+    CREATE TABLE IF NOT EXISTS hashtags (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL UNIQUE,
+      created_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
+    CREATE TABLE IF NOT EXISTS video_hashtags (
+      video_id INTEGER NOT NULL REFERENCES videos(id) ON DELETE CASCADE,
+      hashtag_id INTEGER NOT NULL REFERENCES hashtags(id) ON DELETE CASCADE,
+      PRIMARY KEY (video_id, hashtag_id)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_videos_user_id ON videos(user_id);
     CREATE INDEX IF NOT EXISTS idx_videos_status ON videos(status);
     CREATE INDEX IF NOT EXISTS idx_videos_created_at ON videos(created_at);
     CREATE INDEX IF NOT EXISTS idx_comments_video_id ON comments(video_id);
     CREATE INDEX IF NOT EXISTS idx_follows_following_id ON follows(following_id);
+    CREATE INDEX IF NOT EXISTS idx_hashtags_name ON hashtags(name);
+    CREATE INDEX IF NOT EXISTS idx_video_hashtags_hashtag_id ON video_hashtags(hashtag_id);
   `);
 
   console.log('Database migrated successfully');

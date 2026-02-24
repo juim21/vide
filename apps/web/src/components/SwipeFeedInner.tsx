@@ -64,7 +64,16 @@ export default function SwipeFeedInner() {
       {commentVideoId && (
         <CommentSheet
           videoId={commentVideoId}
-          onClose={() => setCommentVideoId(null)}
+          onClose={(count) => {
+            if (count !== undefined) {
+              useFeedStore.setState(state => ({
+                videos: state.videos.map(v =>
+                  v.id === commentVideoId ? { ...v, commentCount: count } : v
+                ),
+              }));
+            }
+            setCommentVideoId(null);
+          }}
         />
       )}
     </>

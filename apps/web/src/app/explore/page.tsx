@@ -1,10 +1,11 @@
 'use client';
 
 import { useEffect, useState, useRef } from 'react';
+import { useSearchParams } from 'next/navigation';
 import { api } from '@/lib/api';
 import type { VideoWithUser } from '@vide/shared';
 import Link from 'next/link';
-import { Play, Search } from 'lucide-react';
+import { Play, Search, Hash } from 'lucide-react';
 import { toast } from '@/components/Toast';
 import { VideoGridSkeleton } from '@/components/Skeleton';
 
@@ -20,15 +21,24 @@ interface SearchUser {
 interface SearchResults {
   users: SearchUser[];
   videos: VideoWithUser[];
+  hashtags?: string[];
 }
 
 export default function ExplorePage() {
-  const [query, setQuery] = useState('');
+  const searchParams = useSearchParams();
+  const initialQuery = searchParams.get('q') || '';
+  const [query, setQuery] = useState(initialQuery);
   const [trendingVideos, setTrendingVideos] = useState<VideoWithUser[]>([]);
   const [searchResults, setSearchResults] = useState<SearchResults | null>(null);
   const [loadingTrending, setLoadingTrending] = useState(true);
   const [loadingSearch, setLoadingSearch] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Sync URL query param changes
+  useEffect(() => {
+    const q = searchParams.get('q') || '';
+    if (q && q !== query) setQuery(q);
+  }, [searchParams]);
 
   useEffect(() => {
     api<{ success: boolean; data: VideoWithUser[] }>('/api/feed/trending?limit=20')
@@ -130,6 +140,25 @@ export default function ExplorePage() {
             <VideoGridSkeleton count={6} />
           ) : searchResults ? (
             <>
+              {/* Hashtags section */}
+              {searchResults.hashtags && searchResults.hashtags.length > 0 && (
+                <div className="mb-6">
+                  <h2 className="text-base font-semibold mb-3 text-gray-300">해시태그</h2>
+                  <div className="flex flex-wrap gap-2">
+                    {searchResults.hashtags.map(tag => (
+                      <button
+                        key={tag}
+                        onClick={() => setQuery('#' + tag)}
+                        className="flex items-center gap-1.5 bg-gray-800 hover:bg-gray-700 text-white text-sm px-3 py-1.5 rounded-full transition-colors"
+                      >
+                        <Hash size={14} className="text-cyan-400" />
+                        {tag}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               {/* Users section */}
               {searchResults.users.length > 0 && (
                 <div className="mb-6">
@@ -198,7 +227,7 @@ export default function ExplorePage() {
               )}
 
               {/* No results */}
-              {searchResults.users.length === 0 && searchResults.videos.length === 0 && (
+              {searchResults.users.length === 0 && searchResults.videos.length === 0 && (!searchResults.hashtags || searchResults.hashtags.length === 0) && (
                 <p className="text-gray-500 text-center py-12">검색 결과가 없습니다</p>
               )}
             </>

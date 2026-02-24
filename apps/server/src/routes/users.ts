@@ -1,5 +1,5 @@
 import { FastifyInstance } from 'fastify';
-import { eq, and, desc, sql, count, like } from 'drizzle-orm';
+import { eq, and, desc, sql, count, like, inArray } from 'drizzle-orm';
 import { db, schema } from '../db/index.js';
 import { requireAuth, optionalAuth } from '../middleware/auth.js';
 
@@ -247,7 +247,11 @@ export async function userRoutes(app: FastifyInstance) {
     const query = (q || '').trim();
     const pattern = `%${query}%`;
 
-    const users = query
+    // Hashtag search: if query starts with #
+    const isHashtagSearch = query.startsWith('#');
+    const hashtagQuery = isHashtagSearch ? query.replace(/^#/, '').toLowerCase() : '';
+
+    const users = (!isHashtagSearch && query)
       ? db.select({
           id: schema.users.id,
           username: schema.users.username,
@@ -259,14 +263,71 @@ export async function userRoutes(app: FastifyInstance) {
         .all()
       : [];
 
-    const videos = query
-      ? db.select()
-        .from(schema.videos)
+    let videos: any[] = [];
+    let matchedHashtags: string[] = [];
+
+    if (isHashtagSearch && hashtagQuery) {
+      // Search by hashtag name
+      const hashtagPattern = `%${hashtagQuery}%`;
+      const tags = db.select().from(schema.hashtags)
+        .where(sql`${schema.hashtags.name} LIKE ${hashtagPattern}`)
+        .all();
+
+      matchedHashtags = tags.map(t => t.name);
+
+      if (tags.length > 0) {
+        const tagIds = tags.map(t => t.id);
+        const videoIds = db.select({ videoId: schema.videoHashtags.videoId })
+          .from(schema.videoHashtags)
+          .where(inArray(schema.videoHashtags.hashtagId, tagIds))
+          .all()
+          .map(r => r.videoId);
+
+        const uniqueIds = [...new Set(videoIds)];
+        videos = uniqueIds.length > 0
+          ? db.select().from(schema.videos)
+              .where(and(inArray(schema.videos.id, uniqueIds), eq(schema.videos.status, 'active')))
+              .orderBy(desc(schema.videos.createdAt))
+              .all()
+          : [];
+      }
+    } else if (query) {
+      // Normal search: title/description + hashtag matching
+      const titleVideos = db.select().from(schema.videos)
         .where(sql`(${schema.videos.title} LIKE ${pattern} OR ${schema.videos.description} LIKE ${pattern}) AND ${schema.videos.status} = 'active'`)
         .orderBy(desc(schema.videos.createdAt))
-        .all()
-      : [];
+        .all();
 
-    return { success: true, data: { users, videos } };
+      // Also search hashtags for the query
+      const tags = db.select().from(schema.hashtags)
+        .where(sql`${schema.hashtags.name} LIKE ${pattern}`)
+        .all();
+
+      matchedHashtags = tags.map(t => t.name);
+
+      let hashtagVideoIds: number[] = [];
+      if (tags.length > 0) {
+        const tagIds = tags.map(t => t.id);
+        hashtagVideoIds = db.select({ videoId: schema.videoHashtags.videoId })
+          .from(schema.videoHashtags)
+          .where(inArray(schema.videoHashtags.hashtagId, tagIds))
+          .all()
+          .map(r => r.videoId);
+      }
+
+      // Merge and deduplicate
+      const titleVideoIds = new Set(titleVideos.map(v => v.id));
+      const extraIds = hashtagVideoIds.filter(id => !titleVideoIds.has(id));
+      const extraVideos = extraIds.length > 0
+        ? db.select().from(schema.videos)
+            .where(and(inArray(schema.videos.id, extraIds), eq(schema.videos.status, 'active')))
+            .orderBy(desc(schema.videos.createdAt))
+            .all()
+        : [];
+
+      videos = [...titleVideos, ...extraVideos];
+    }
+
+    return { success: true, data: { users, videos, hashtags: matchedHashtags } };
   });
 }

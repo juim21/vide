@@ -44,6 +44,7 @@ export interface Video {
   commentCount: number;
   status: VideoStatus;
   createdAt: string;
+  hashtags?: string[];
 }
 
 export interface VideoWithUser extends Video {

@@ -70,12 +70,15 @@ export default function VideoPage() {
 
   const handleVideoClick = useCallback((e: React.MouseEvent<HTMLVideoElement>) => {
     const now = Date.now();
-    if (now - lastTapRef.current < 300) {
+    if (now - lastTapRef.current < 200) {
+      // Double tap → like (Instagram style: always show heart)
       lastTapRef.current = 0;
       const rect = e.currentTarget.getBoundingClientRect();
       setHeartPos({ x: e.clientX - rect.left, y: e.clientY - rect.top });
       setTimeout(() => setHeartPos(null), 800);
-      if (isAuthenticated && video && !video.isLiked) {
+      if (!isAuthenticated) {
+        toast('로그인하면 좋아요를 누를 수 있어요', 'error');
+      } else if (video && !video.isLiked) {
         const wasLiked = video.isLiked;
         setVideo({ ...video, isLiked: true, likeCount: video.likeCount + 1 });
         api(`/api/videos/${video.id}/like`, { method: 'POST' }).catch(() => {
@@ -88,7 +91,7 @@ export default function VideoPage() {
         if (lastTapRef.current === now) {
           togglePlay();
         }
-      }, 300);
+      }, 200);
     }
   }, [isAuthenticated, video, togglePlay]);
 
@@ -193,6 +196,19 @@ export default function VideoPage() {
         </Link>
         <p className="text-white text-sm mt-1 line-clamp-2">{video.title}</p>
         {video.description && <p className="text-gray-300 text-xs mt-1 line-clamp-1">{video.description}</p>}
+        {video.hashtags && video.hashtags.length > 0 && (
+          <div className="flex flex-wrap gap-1 mt-1.5">
+            {video.hashtags.map(tag => (
+              <Link
+                key={tag}
+                href={`/explore?q=${encodeURIComponent('#' + tag)}`}
+                className="text-cyan-400 text-xs font-medium hover:underline"
+              >
+                #{tag}
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Action buttons */}
@@ -220,7 +236,17 @@ export default function VideoPage() {
         </button>
       </div>
 
-      {showComments && <CommentSheet videoId={video.id} onClose={() => setShowComments(false)} />}
+      {showComments && (
+        <CommentSheet
+          videoId={video.id}
+          onClose={(count) => {
+            if (count !== undefined) {
+              setVideo(prev => prev ? { ...prev, commentCount: count } : null);
+            }
+            setShowComments(false);
+          }}
+        />
+      )}
     </div>
   );
 }
