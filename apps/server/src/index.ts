@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import cookie from '@fastify/cookie';
@@ -10,6 +11,7 @@ import { authRoutes } from './routes/auth.js';
 import { videoRoutes } from './routes/videos.js';
 import { feedRoutes } from './routes/feed.js';
 import { userRoutes } from './routes/users.js';
+import { githubRoutes } from './routes/github.js';
 
 // Run migration on startup
 import { migrate } from './db/migrate.js';
@@ -55,6 +57,7 @@ await app.register(authRoutes);
 await app.register(videoRoutes);
 await app.register(feedRoutes);
 await app.register(userRoutes);
+await app.register(githubRoutes);
 
 // Health check
 app.get('/api/health', async () => ({ status: 'ok' }));
