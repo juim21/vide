@@ -177,6 +177,54 @@ npm run db:seed -w @vide/server
 | GET | `/api/feed/trending` | Optional | 트렌딩 피드 |
 | GET | `/api/search?q=` | Optional | 사용자/영상/해시태그 검색 |
 | GET | `/api/hashtags/:name/videos` | Optional | 해시태그별 영상 목록 |
+| POST | `/api/github/pull-requests` | Server token | GitHub Pull Request 생성 |
+
+### GitHub PR 생성 API
+
+agent가 코드 수정 후 브랜치를 push한 상태에서 PR을 생성합니다.
+
+필요 환경변수:
+
+```bash
+GITHUB_API_BASE_URL=https://api.github.com
+GITHUB_TOKEN=github_pat_xxx
+```
+
+GitHub Enterprise Server로 전환할 때는 `GITHUB_API_BASE_URL`만 `https://github.company.com/api/v3` 형식으로 바꾸면 됩니다.
+
+요청:
+
+```http
+POST /api/github/pull-requests
+Content-Type: application/json
+```
+
+```json
+{
+  "owner": "your-github-id",
+  "repo": "your-repo",
+  "baseBranch": "main",
+  "headBranch": "ai-agent/TASK-1024",
+  "title": "[AI] Sample PR",
+  "body": "## Summary\n- Created by AI agent\n\n## Test\n- npm test",
+  "draft": true
+}
+```
+
+응답:
+
+```json
+{
+  "success": true,
+  "data": {
+    "status": "pr_created",
+    "pullRequestNumber": 123,
+    "pullRequestUrl": "https://github.com/your-github-id/your-repo/pull/123",
+    "apiUrl": "https://api.github.com/repos/your-github-id/your-repo/pulls/123",
+    "state": "open"
+  }
+}
+```
 
 ## DB 스키마
 
